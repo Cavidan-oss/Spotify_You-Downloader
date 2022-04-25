@@ -1,4 +1,3 @@
-import urllib.request
 import re
 from file_handler import File_Handler
 from music_downloader import YoutubeDownloader
@@ -10,6 +9,11 @@ from datetime import datetime as dt
 from time import sleep
 import requests
 from dotenv import load_dotenv
+from bs4 import BeautifulSoup
+from urllib.parse import urlencode
+
+
+
 
 
 class Main(SpotifyApi, File_Handler):
@@ -30,18 +34,22 @@ class Main(SpotifyApi, File_Handler):
 		"""
 
 		self.data = self.parse_playlist(spofy_list_url)
-		self.create_path('test')
+		self.create_path()
 		data = []
 
 		for id, info in self.data.items():
 
 			self.musics_name, self.music_duration= info[0].replace(':','-'), info[1]
-			query = "+".join(self.musics_name.split(' ')).encode(encoding = 'UTF-8', errors = 'strict')
-			search_query = f"https://www.youtube.com/results?search_query={query}"
+			#query = "+".join(self.musics_name.split(' ')).encode(encoding = 'UTF-8', errors = 'strict')
+			#search_query = f"https://www.youtube.com/results?search_query={query}"
+
+
+			base = f"https://www.youtube.com/results"
+			query = "".join(self.musics_name.split(' ')).encode(encoding = 'UTF-8', errors = 'strict')
+			search_query = f"{base}?{urlencode({'search_query':query})}"
 
 			links = self.get_video_links(search_query)
-			print(links)
-
+			
 			if links:
 				for link in links:
 
@@ -52,15 +60,18 @@ class Main(SpotifyApi, File_Handler):
 					if self.check.confirm_indenti(self.musics_name, l_music_name, self.music_duration, l_duration):
 						try:
 							downloader.download_as_music()
+
+							
 						except:
-							print(f'Download Error for :{musics_name}')
+							print(f'Download Error for :{self.musics_name}')
 							print(f'{self.musics_name} | Problem - {Exception}')
 						else:			
 							print(f'{self.musics_name} Downloaded_name {l_music_name} |Sucess')
 						
 						break
+						
 			else:
-				print(f"{l_music_name} Not links found{links}")
+				print(f"{self.musics_name} Not links found{links}")
 
 		return data
 
@@ -86,12 +97,32 @@ class Main(SpotifyApi, File_Handler):
 		Returns the youtube links in a specified limit
 		"""
 		
-		html = urllib.request.urlopen(search_url)
-		sleep(1)
-		video_ids = re.findall(r"watch\?v=(\S{11})", html.read().decode())
+		#html = urllib.request.urlopen(search_url)
+		#sleep(1)
+		soup = self.get_soup(search_url)
+
+		#video_ids = re.findall(r"watch\?v=(\S{11})", html.read().decode())
+		video_ids = re.findall(r"watch\?v=(\S{11})", str(soup))
+
 
 		return [f"https://www.youtube.com/watch?v={id}" for id in video_ids[:limit]]
 
+
+	def get_soup(self, url):
+    
+	    while True:
+	        try:
+	            request=requests.get(url)
+	            break
+	        
+	        except:
+	            print("Error Occured. Reconnecting!!!!")
+	    
+	    content=request.content
+
+	    soup=BeautifulSoup(content, 'html.parser')
+	    
+	    return soup
 
 
 
@@ -104,5 +135,6 @@ client_secret = os.getenv("CLIENT_SECRET")
 music = Main(client_id, client_secret)
 
 
-#print(music.download_playlist('37i9dQZEVXbIVYVBNw9D5K'))
+print(music.download_playlist('37i9dQZEVXbIVYVBNw9D5K'))
+
 

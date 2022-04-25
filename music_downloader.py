@@ -18,7 +18,7 @@ class YoutubeDownloader(object):
       self.music = self.video.audiostreams
       index = self.get_needed_form('m')
       
-      #self.music[index].download()
+      self.music[index].download()
 
   def get_needed_form(self, mode = 'v'):
 
